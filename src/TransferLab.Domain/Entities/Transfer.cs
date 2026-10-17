@@ -10,6 +10,9 @@ public class Transfer
     public decimal Amount { get; set; }    
     public TransferStatus Status { get; set; }    
     public DateTimeOffset CreatedUtc { get; set; }
+    private Transfer()
+    {
+    }
     
     public Transfer(Guid sourceAccountId, Guid destinationAccountId, decimal amount)
     {
