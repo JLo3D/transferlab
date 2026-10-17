@@ -1,4 +1,15 @@
+using Microsoft.EntityFrameworkCore;
+using TransferLab.Infrastructure.Persistence;
+
 var builder = WebApplication.CreateBuilder(args);
+
+var connectionString = builder.Configuration
+                           .GetConnectionString("TransferLab")
+                       ?? throw new InvalidOperationException(
+                           "Connection string 'TransferLab' was not found.");
+
+builder.Services.AddDbContext<TransferLabDbContext>(options =>
+    options.UseSqlServer(connectionString));
 
 // Add services to the container.
 

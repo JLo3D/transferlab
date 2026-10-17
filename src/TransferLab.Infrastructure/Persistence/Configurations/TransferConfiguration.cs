@@ -28,5 +28,15 @@ public class TransferConfiguration : IEntityTypeConfiguration<Transfer>
         builder.HasIndex(x => x.DestinationAccountId);
 
         builder.HasIndex(x => x.Status);
+        
+        builder.HasOne<Account>()
+            .WithMany()
+            .HasForeignKey(x => x.SourceAccountId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne<Account>()
+            .WithMany()
+            .HasForeignKey(x => x.DestinationAccountId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

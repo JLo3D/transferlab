@@ -1,0 +1,19 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    platform: linux/amd64
+    container_name: transferlab-sql
+
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: "Developer"
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD}"
+
+    ports:
+      - "1433:1433"
+
+    volumes:
+      - transferlab-sql-data:/var/opt/mssql
+
+volumes:
+  transferlab-sql-data:
