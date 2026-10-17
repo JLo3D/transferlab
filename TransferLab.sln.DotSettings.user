@@ -4,5 +4,10 @@
   &lt;Solution /&gt;
 &lt;/SessionState&gt;</s:String>
 	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=6935ef8e_002D2468_002D43c0_002Db9d7_002Dee6d2aee3d83/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="All tests from &amp;lt;tests&amp;gt;\&amp;lt;TransferLab.UnitTests&amp;gt;" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
-  &lt;Project Location="/Users/aman/dev/transferlab/tests/TransferLab.UnitTests" Presentation="&amp;lt;tests&amp;gt;\&amp;lt;TransferLab.UnitTests&amp;gt;" /&gt;
+  &lt;Or&gt;
+    &lt;Project Location="/Users/aman/dev/transferlab/tests/TransferLab.UnitTests" Presentation="&amp;lt;tests&amp;gt;\&amp;lt;TransferLab.UnitTests&amp;gt;" /&gt;
+    &lt;TestAncestor&gt;
+      &lt;TestId&gt;xUnit::AF4AAEF0-EA0A-4E28-BE19-3ADB2CB9C9ED::net10.0::TransferLab.IntegrationTests.Persistence.DatabaseIntegrationTests.Account_CanBePersistedAndReloaded&lt;/TestId&gt;
+    &lt;/TestAncestor&gt;
+  &lt;/Or&gt;
 &lt;/SessionState&gt;</s:String></wpf:ResourceDictionary>
