@@ -16,7 +16,11 @@ public class Transfer
     
     public Transfer(Guid sourceAccountId, Guid destinationAccountId, decimal amount)
     {
-        if (sourceAccountId == Guid.Empty) 
+        if (sourceAccountId == Guid.Empty)
+            throw new ArgumentException(
+                "Source account is required.",
+                nameof(sourceAccountId));
+        if (destinationAccountId == Guid.Empty)
             throw new ArgumentException(
                 "Destination account is required.",
                 nameof(destinationAccountId));

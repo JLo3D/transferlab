@@ -13,13 +13,19 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        var connectionString = configuration
-                                   .GetConnectionString("TransferLab")
-                               ?? throw new InvalidOperationException(
-                                   "Connection string 'TransferLab' was not found.");
+        services.AddDbContext<TransferLabDbContext>((serviceProvider, options) =>
+        {
+            var finalConfiguration = serviceProvider
+                                         .GetService<IConfiguration>()
+                                     ?? configuration;
 
-        services.AddDbContext<TransferLabDbContext>(options =>
-            options.UseSqlServer(connectionString));
+            var connectionString = finalConfiguration
+                                       .GetConnectionString("TransferLab")
+                                   ?? throw new InvalidOperationException(
+                                       "Connection string 'TransferLab' was not found.");
+
+            options.UseSqlServer(connectionString);
+        });
 
         services.AddScoped<IAccountRepository, AccountRepository>();
         services.AddScoped<ITransferRepository, TransferRepository>();

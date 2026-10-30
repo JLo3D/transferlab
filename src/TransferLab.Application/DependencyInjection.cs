@@ -3,6 +3,7 @@ using TransferLab.Application.Accounts.CreateAccount;
 using TransferLab.Application.Transfers.CreateTransfer;
 using TransferLab.Application.Transfers.ProcessTransfer;
 using TransferLab.Application.Accounts.GetAccount;
+using TransferLab.Application.Transfers.GetTransfer;
 
 namespace TransferLab.Application;
 
@@ -15,6 +16,7 @@ public static class DependencyInjection
         services.AddScoped<CreateTransferHandler>();
         services.AddScoped<ProcessTransferHandler>();
         services.AddScoped<GetAccountHandler>();
+        services.AddScoped<GetTransferHandler>();
 
         return services;
     }

@@ -36,6 +36,27 @@ public class TransferTests
             "Source and destination accounts must be different.",
             exception.Message);
     }
+
+    [Fact]
+    public void Constructor_WithEmptySourceAccount_ThrowsArgumentException()
+    {
+        var exception = Assert.Throws<ArgumentException>(() =>
+            new Transfer(Guid.Empty, Guid.NewGuid(), 100m));
+
+        Assert.Equal("sourceAccountId", exception.ParamName);
+        Assert.StartsWith("Source account is required.", exception.Message);
+    }
+
+    [Fact]
+    public void Constructor_WithEmptyDestinationAccount_ThrowsArgumentException()
+    {
+        var exception = Assert.Throws<ArgumentException>(() =>
+            new Transfer(Guid.NewGuid(), Guid.Empty, 100m));
+
+        Assert.Equal("destinationAccountId", exception.ParamName);
+        Assert.StartsWith("Destination account is required.", exception.Message);
+    }
+
     [Fact]
     public void MarkProcessing_FromPending_ChangesStatusToProcessing()
     {
