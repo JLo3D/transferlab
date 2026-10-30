@@ -21,6 +21,12 @@ public class UnitOfWork : IUnitOfWork
         {
             await _dbContext.SaveChangesAsync(cancellationToken);
         }
+        catch (DbUpdateConcurrencyException exception)
+        {
+            throw new PersistenceConcurrencyException(
+                "The persisted state changed while it was being updated.",
+                exception);
+        }
         catch (DbUpdateException exception)
             when (exception.InnerException is SqlException
             {

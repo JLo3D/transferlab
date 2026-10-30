@@ -15,6 +15,144 @@ namespace TransferLab.IntegrationTests.Persistence;
 public class TransferProcessingIntegrationTests
 {
     [Fact]
+    public async Task ConcurrentTransfers_SharingAnAccount_RetryWithoutLosingBalanceUpdates()
+    {
+        await using var sqlContainer = new MsSqlBuilder(
+                "mcr.microsoft.com/mssql/server:2022-latest")
+            .Build();
+
+        await sqlContainer.StartAsync();
+
+        var configuration = new ConfigurationManager
+        {
+            ["ConnectionStrings:TransferLab"] =
+                sqlContainer.GetConnectionString()
+        };
+
+        var services = new ServiceCollection();
+        services.AddApplication();
+        services.AddInfrastructure(configuration);
+        services.AddSingleton<ConcurrentSaveBarrier>();
+        services.AddScoped<UnitOfWork>();
+        services.AddScoped<IUnitOfWork, CoordinatedUnitOfWork>();
+
+        await using var serviceProvider =
+            services.BuildServiceProvider();
+
+        Guid sourceId;
+        Guid firstDestinationId;
+        Guid secondDestinationId;
+        Guid firstTransferId;
+        Guid secondTransferId;
+
+        await using (var scope = serviceProvider.CreateAsyncScope())
+        {
+            var dbContext = scope.ServiceProvider
+                .GetRequiredService<TransferLabDbContext>();
+
+            await dbContext.Database.MigrateAsync();
+
+            var source = new Account("Shared Source", 1000m);
+            var firstDestination = new Account("First Destination", 0m);
+            var secondDestination = new Account("Second Destination", 0m);
+            var firstTransfer = new Transfer(
+                source.Id,
+                firstDestination.Id,
+                100m);
+            var secondTransfer = new Transfer(
+                source.Id,
+                secondDestination.Id,
+                150m);
+
+            dbContext.AddRange(
+                source,
+                firstDestination,
+                secondDestination,
+                firstTransfer,
+                secondTransfer);
+
+            await dbContext.SaveChangesAsync();
+
+            sourceId = source.Id;
+            firstDestinationId = firstDestination.Id;
+            secondDestinationId = secondDestination.Id;
+            firstTransferId = firstTransfer.Id;
+            secondTransferId = secondTransfer.Id;
+        }
+
+        var concurrentResults = await Task.WhenAll(
+            ProcessAsync(firstTransferId),
+            ProcessAsync(secondTransferId));
+
+        Assert.Equal(
+            1,
+            concurrentResults.Count(x =>
+                x.Outcome == ProcessTransferOutcome.Completed));
+        Assert.Equal(
+            1,
+            concurrentResults.Count(x =>
+                x.Outcome == ProcessTransferOutcome.RetryScheduled));
+
+        var retryTransferId = concurrentResults
+            .Single(x =>
+                x.Outcome == ProcessTransferOutcome.RetryScheduled)
+            .TransferId;
+
+        var retryResult = await ProcessAsync(retryTransferId);
+
+        Assert.Equal(ProcessTransferOutcome.Completed, retryResult.Outcome);
+
+        await using (var scope = serviceProvider.CreateAsyncScope())
+        {
+            var dbContext = scope.ServiceProvider
+                .GetRequiredService<TransferLabDbContext>();
+
+            var source = await dbContext.Accounts
+                .AsNoTracking()
+                .SingleAsync(x => x.Id == sourceId);
+            var firstDestination = await dbContext.Accounts
+                .AsNoTracking()
+                .SingleAsync(x => x.Id == firstDestinationId);
+            var secondDestination = await dbContext.Accounts
+                .AsNoTracking()
+                .SingleAsync(x => x.Id == secondDestinationId);
+            var transfers = await dbContext.Transfers
+                .AsNoTracking()
+                .Where(x =>
+                    x.Id == firstTransferId ||
+                    x.Id == secondTransferId)
+                .ToListAsync();
+
+            Assert.Equal(750m, source.Balance);
+            Assert.Equal(100m, firstDestination.Balance);
+            Assert.Equal(150m, secondDestination.Balance);
+            Assert.All(
+                transfers,
+                transfer => Assert.Equal(
+                    TransferStatus.Completed,
+                    transfer.Status));
+            Assert.Equal(
+                [1, 2],
+                transfers
+                    .Select(x => x.AttemptCount)
+                    .Order()
+                    .ToArray());
+        }
+
+        async Task<(Guid TransferId, ProcessTransferOutcome Outcome)> ProcessAsync(
+            Guid transferId)
+        {
+            await using var scope = serviceProvider.CreateAsyncScope();
+            var handler = scope.ServiceProvider
+                .GetRequiredService<ProcessTransferHandler>();
+
+            var outcome = await handler.HandleAsync(transferId);
+
+            return (transferId, outcome);
+        }
+    }
+
+    [Fact]
     public async Task ConcurrentProcessing_IsSingleExecutionTransactionalAndRecoverable()
     {
         await using var sqlContainer = new MsSqlBuilder(
@@ -195,6 +333,34 @@ public class TransferProcessingIntegrationTests
                 .GetRequiredService<ProcessTransferHandler>();
 
             return await handler.HandleAsync(transferId);
+        }
+    }
+
+    private sealed class ConcurrentSaveBarrier
+    {
+        private readonly TaskCompletionSource _bothReady = new(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        private int _arrivalCount;
+
+        public async Task SignalAndWaitAsync(
+            CancellationToken cancellationToken)
+        {
+            if (Interlocked.Increment(ref _arrivalCount) == 2)
+                _bothReady.TrySetResult();
+
+            await _bothReady.Task.WaitAsync(cancellationToken);
+        }
+    }
+
+    private sealed class CoordinatedUnitOfWork(
+        UnitOfWork inner,
+        ConcurrentSaveBarrier barrier) : IUnitOfWork
+    {
+        public async Task SaveChangesAsync(
+            CancellationToken cancellationToken = default)
+        {
+            await barrier.SignalAndWaitAsync(cancellationToken);
+            await inner.SaveChangesAsync(cancellationToken);
         }
     }
 }

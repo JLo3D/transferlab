@@ -18,5 +18,8 @@ public class AccountConfiguration : IEntityTypeConfiguration<Account>
 
         builder.Property(x => x.Balance)
             .HasPrecision(18, 2);
+
+        builder.Property(x => x.RowVersion)
+            .IsRowVersion();
     }
 }

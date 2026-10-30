@@ -1,4 +1,5 @@
 using TransferLab.Application.Transfers.ProcessTransfer;
+using TransferLab.Application.Common.Exceptions;
 using TransferLab.Domain.Entities;
 using TransferLab.Domain.Enums;
 using TransferLab.UnitTests.Fakes;
@@ -107,5 +108,41 @@ public class ProcessTransferHandlerTests
         Assert.Equal(500m, sourceAccount.Balance);
         Assert.Equal(100m, destinationAccount.Balance);
         Assert.False(unitOfWork.SaveChangesCalled);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenAccountChanged_ReleasesTransferForRetry()
+    {
+        var accountRepository = new FakeAccountRepository();
+        var transferRepository = new FakeTransferRepository();
+        var unitOfWork = new FakeUnitOfWork
+        {
+            ExceptionToThrow = new PersistenceConcurrencyException(
+                "Account changed.",
+                new InvalidOperationException())
+        };
+        var sourceAccount = new Account("Source", 500m);
+        var destinationAccount = new Account("Destination", 100m);
+        var transfer = new Transfer(
+            sourceAccount.Id,
+            destinationAccount.Id,
+            125m);
+
+        await accountRepository.AddAsync(sourceAccount);
+        await accountRepository.AddAsync(destinationAccount);
+        await transferRepository.AddAsync(transfer);
+
+        var handler = new ProcessTransferHandler(
+            accountRepository,
+            transferRepository,
+            unitOfWork);
+
+        var outcome = await handler.HandleAsync(transfer.Id);
+
+        Assert.Equal(ProcessTransferOutcome.RetryScheduled, outcome);
+        Assert.Equal(TransferStatus.Pending, transfer.Status);
+        Assert.Equal(1, transfer.AttemptCount);
+        Assert.Null(transfer.ProcessingStartedUtc);
+        Assert.True(unitOfWork.SaveChangesCalled);
     }
 }

@@ -65,6 +65,23 @@ public class FakeTransferRepository : ITransferRepository
         return Task.FromResult(true);
     }
 
+    public Task<bool> ReleaseClaimAsync(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var transfer = Transfers.FirstOrDefault(x => x.Id == id);
+
+        if (transfer is null || transfer.Status is not (
+                TransferStatus.Processing or TransferStatus.Completed))
+            return Task.FromResult(false);
+
+        // A real concurrency failure rolls back the uncommitted Completed state.
+        transfer.Status = TransferStatus.Processing;
+        transfer.ReleaseForRetry();
+
+        return Task.FromResult(true);
+    }
+
     public Task<int> RequeueAbandonedAsync(
         DateTimeOffset startedBeforeUtc,
         CancellationToken cancellationToken = default)

@@ -25,6 +25,10 @@ public interface ITransferRepository
         DateTimeOffset processingStartedUtc,
         CancellationToken cancellationToken = default);
 
+    Task<bool> ReleaseClaimAsync(
+        Guid id,
+        CancellationToken cancellationToken = default);
+
     Task<int> RequeueAbandonedAsync(
         DateTimeOffset startedBeforeUtc,
         CancellationToken cancellationToken = default);

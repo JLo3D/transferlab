@@ -80,6 +80,27 @@ public class TransferRepository : ITransferRepository
         return updatedRows == 1;
     }
 
+    public async Task<bool> ReleaseClaimAsync(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var updatedRows = await _dbContext.Transfers
+            .Where(transfer =>
+                transfer.Id == id &&
+                transfer.Status == TransferStatus.Processing)
+            .ExecuteUpdateAsync(
+                setters => setters
+                    .SetProperty(
+                        transfer => transfer.Status,
+                        TransferStatus.Pending)
+                    .SetProperty(
+                        transfer => transfer.ProcessingStartedUtc,
+                        (DateTimeOffset?)null),
+                cancellationToken);
+
+        return updatedRows == 1;
+    }
+
     public Task<int> RequeueAbandonedAsync(
         DateTimeOffset startedBeforeUtc,
         CancellationToken cancellationToken = default)

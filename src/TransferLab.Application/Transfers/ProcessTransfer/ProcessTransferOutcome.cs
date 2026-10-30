@@ -4,5 +4,6 @@ public enum ProcessTransferOutcome
 {
     Completed,
     NotClaimed,
+    RetryScheduled,
     Failed
 }

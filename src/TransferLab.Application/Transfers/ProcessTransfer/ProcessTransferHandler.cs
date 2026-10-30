@@ -69,7 +69,24 @@ public class ProcessTransferHandler
                 cancellationToken);
         }
 
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+        catch (PersistenceConcurrencyException)
+        {
+            var released = await _transferRepository.ReleaseClaimAsync(
+                transfer.Id,
+                cancellationToken);
+
+            if (!released)
+            {
+                throw new InvalidOperationException(
+                    $"Transfer '{transfer.Id}' could not be released for retry.");
+            }
+
+            return ProcessTransferOutcome.RetryScheduled;
+        }
 
         return ProcessTransferOutcome.Completed;
     }

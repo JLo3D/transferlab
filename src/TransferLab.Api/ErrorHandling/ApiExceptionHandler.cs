@@ -63,6 +63,10 @@ public sealed class ApiExceptionHandler(
                 StatusCodes.Status409Conflict,
                 "Persistence conflict",
                 "The request conflicts with an existing resource."),
+            PersistenceConcurrencyException => (
+                StatusCodes.Status409Conflict,
+                "Concurrency conflict",
+                "The resource changed while the request was being processed."),
             ArgumentException => (
                 StatusCodes.Status400BadRequest,
                 "Invalid request",

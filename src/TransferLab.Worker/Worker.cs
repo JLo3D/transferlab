@@ -118,6 +118,11 @@ public class Worker(
                         "Transfer {TransferId} was claimed by another worker.",
                         transferId);
                     break;
+                case ProcessTransferOutcome.RetryScheduled:
+                    logger.LogWarning(
+                        "Transfer {TransferId} encountered an account concurrency conflict and was scheduled for retry.",
+                        transferId);
+                    break;
                 case ProcessTransferOutcome.Failed:
                     logger.LogWarning(
                         "Transfer {TransferId} failed a business rule.",
