@@ -23,11 +23,24 @@ public class TransferConfiguration : IEntityTypeConfiguration<Transfer>
         builder.Property(x => x.CreatedUtc)
             .IsRequired();
 
+        builder.Property(x => x.AttemptCount)
+            .IsRequired();
+
         builder.HasIndex(x => x.SourceAccountId);
 
         builder.HasIndex(x => x.DestinationAccountId);
 
-        builder.HasIndex(x => x.Status);
+        builder.HasIndex(x => new
+        {
+            x.Status,
+            x.CreatedUtc
+        });
+
+        builder.HasIndex(x => new
+        {
+            x.Status,
+            x.ProcessingStartedUtc
+        });
         
         builder.HasOne<Account>()
             .WithMany()

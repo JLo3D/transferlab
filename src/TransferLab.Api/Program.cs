@@ -1,4 +1,5 @@
 using TransferLab.Api.Endpoints;
+using TransferLab.Api.ErrorHandling;
 using TransferLab.Application;
 using TransferLab.Infrastructure;
 using Scalar.AspNetCore;
@@ -9,6 +10,8 @@ builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
 builder.Services.AddOpenApi();
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 
 var app = builder.Build();
 
@@ -18,6 +21,7 @@ if (app.Environment.IsDevelopment())
     app.MapScalarApiReference();
 }
 
+app.UseExceptionHandler();
 app.UseHttpsRedirection();
 
 app.MapAccountEndpoints();

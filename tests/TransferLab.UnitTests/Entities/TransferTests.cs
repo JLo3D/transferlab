@@ -23,6 +23,8 @@ public class TransferTests
         Assert.Equal(amount, transfer.Amount);
         Assert.Equal(TransferStatus.Pending, transfer.Status);
         Assert.NotEqual(default, transfer.CreatedUtc);
+        Assert.Null(transfer.ProcessingStartedUtc);
+        Assert.Equal(0, transfer.AttemptCount);
     }
 
     [Fact]
@@ -69,6 +71,24 @@ public class TransferTests
         transfer.MarkProcessing();
         
         Assert.Equal(TransferStatus.Processing, transfer.Status);
+        Assert.NotNull(transfer.ProcessingStartedUtc);
+        Assert.Equal(1, transfer.AttemptCount);
+    }
+
+    [Fact]
+    public void ReleaseForRetry_FromProcessing_ReturnsToPendingAndPreservesAttemptCount()
+    {
+        var transfer = new Transfer(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            100m);
+
+        transfer.MarkProcessing();
+        transfer.ReleaseForRetry();
+
+        Assert.Equal(TransferStatus.Pending, transfer.Status);
+        Assert.Null(transfer.ProcessingStartedUtc);
+        Assert.Equal(1, transfer.AttemptCount);
     }
     
     [Fact]

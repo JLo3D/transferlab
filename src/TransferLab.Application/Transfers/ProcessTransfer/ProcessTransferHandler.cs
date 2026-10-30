@@ -1,4 +1,6 @@
 using TransferLab.Application.Abstractions.Persistence;
+using TransferLab.Application.Common.Exceptions;
+using TransferLab.Domain.Entities;
 
 namespace TransferLab.Application.Transfers.ProcessTransfer;
 
@@ -18,32 +20,40 @@ public class ProcessTransferHandler
         _unitOfWork = unitOfWork;
     }
 
-    public async Task HandleAsync(
+    public async Task<ProcessTransferOutcome> HandleAsync(
         Guid transferId,
         CancellationToken cancellationToken = default)
     {
+        var claimed = await _transferRepository.TryClaimAsync(
+            transferId,
+            DateTimeOffset.UtcNow,
+            cancellationToken);
+
+        if (!claimed)
+            return ProcessTransferOutcome.NotClaimed;
+
         var transfer = await _transferRepository.GetByIdAsync(transferId, cancellationToken);
 
         if (transfer is null)
-            throw new InvalidOperationException($"Transfer {transferId} was not found.");
+            throw new EntityNotFoundException("Transfer", transferId);
         
         var sourceAccount = await _accountRepository.GetByIdAsync(
             transfer.SourceAccountId, 
             cancellationToken);
         
         if (sourceAccount is null)
-            throw new InvalidOperationException(
-                $"Source account {transfer.SourceAccountId} was not found.");
+            return await MarkFailedAsync(
+                transfer,
+                cancellationToken);
 
         var destinationAccount = await _accountRepository.GetByIdAsync(
             transfer.DestinationAccountId,
             cancellationToken);
         
         if (destinationAccount is null)
-            throw new InvalidOperationException(
-                $"Destination account {transfer.DestinationAccountId} was not found.");
-
-        transfer.MarkProcessing();
+            return await MarkFailedAsync(
+                transfer,
+                cancellationToken);
 
         try
         {
@@ -52,15 +62,26 @@ public class ProcessTransferHandler
 
             transfer.MarkCompleted();
         }
-        catch
+        catch (InvalidOperationException)
         {
-            transfer.MarkFailed();
-
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-            throw;
+            return await MarkFailedAsync(
+                transfer,
+                cancellationToken);
         }
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return ProcessTransferOutcome.Completed;
+    }
+
+    private async Task<ProcessTransferOutcome> MarkFailedAsync(
+        Transfer transfer,
+        CancellationToken cancellationToken)
+    {
+        transfer.MarkFailed();
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return ProcessTransferOutcome.Failed;
     }
 }

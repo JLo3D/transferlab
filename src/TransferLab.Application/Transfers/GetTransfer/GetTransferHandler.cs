@@ -28,6 +28,8 @@ public class GetTransferHandler
             transfer.DestinationAccountId,
             transfer.Amount,
             transfer.Status.ToString(),
-            transfer.CreatedUtc);
+            transfer.CreatedUtc,
+            transfer.ProcessingStartedUtc,
+            transfer.AttemptCount);
     }
 }

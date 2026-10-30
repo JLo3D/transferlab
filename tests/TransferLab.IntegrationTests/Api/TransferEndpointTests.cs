@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -85,6 +86,8 @@ public class TransferEndpointTests
         Assert.NotNull(pendingTransfer);
         Assert.Equal("Pending", pendingTransfer.Status);
         Assert.Equal(125m, pendingTransfer.Amount);
+        Assert.Equal(0, pendingTransfer.AttemptCount);
+        Assert.Null(pendingTransfer.ProcessingStartedUtc);
 
         await using (var scope = factory.Services.CreateAsyncScope())
         {
@@ -100,6 +103,8 @@ public class TransferEndpointTests
 
         Assert.NotNull(completedTransfer);
         Assert.Equal("Completed", completedTransfer.Status);
+        Assert.Equal(1, completedTransfer.AttemptCount);
+        Assert.NotNull(completedTransfer.ProcessingStartedUtc);
 
         var sourceAccount = await client
             .GetFromJsonAsync<AccountResponse>(
@@ -113,6 +118,60 @@ public class TransferEndpointTests
         Assert.NotNull(destinationAccount);
         Assert.Equal(875m, sourceAccount.Balance);
         Assert.Equal(225m, destinationAccount.Balance);
+
+        var missingTransferResponse = await client.GetAsync(
+            $"/api/transfers/{Guid.NewGuid()}");
+
+        Assert.Equal(
+            HttpStatusCode.NotFound,
+            missingTransferResponse.StatusCode);
+        Assert.Equal(
+            "application/problem+json",
+            missingTransferResponse.Content.Headers.ContentType?.MediaType);
+
+        var missingTransferProblem = await missingTransferResponse.Content
+            .ReadFromJsonAsync<ProblemDetails>();
+
+        Assert.NotNull(missingTransferProblem);
+        Assert.Equal("Transfer not found", missingTransferProblem.Title);
+
+        var invalidTransferResponse = await client.PostAsJsonAsync(
+            "/api/transfers",
+            new
+            {
+                sourceAccountId,
+                destinationAccountId = sourceAccountId,
+                amount = 25m
+            });
+
+        Assert.Equal(
+            HttpStatusCode.BadRequest,
+            invalidTransferResponse.StatusCode);
+
+        var invalidTransferProblem = await invalidTransferResponse.Content
+            .ReadFromJsonAsync<ProblemDetails>();
+
+        Assert.NotNull(invalidTransferProblem);
+        Assert.Equal("Invalid request", invalidTransferProblem.Title);
+
+        var missingAccountResponse = await client.PostAsJsonAsync(
+            "/api/transfers",
+            new
+            {
+                sourceAccountId = Guid.NewGuid(),
+                destinationAccountId,
+                amount = 25m
+            });
+
+        Assert.Equal(
+            HttpStatusCode.NotFound,
+            missingAccountResponse.StatusCode);
+
+        var missingAccountProblem = await missingAccountResponse.Content
+            .ReadFromJsonAsync<ProblemDetails>();
+
+        Assert.NotNull(missingAccountProblem);
+        Assert.Equal("Resource not found", missingAccountProblem.Title);
     }
 
     private static async Task<Guid> CreateAccountAsync(
@@ -142,7 +201,9 @@ public class TransferEndpointTests
         Guid DestinationAccountId,
         decimal Amount,
         string Status,
-        DateTimeOffset CreatedUtc);
+        DateTimeOffset CreatedUtc,
+        DateTimeOffset? ProcessingStartedUtc,
+        int AttemptCount);
 
     private sealed record AccountResponse(
         Guid Id,

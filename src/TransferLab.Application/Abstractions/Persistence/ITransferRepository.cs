@@ -15,4 +15,13 @@ public interface ITransferRepository
     Task<IReadOnlyList<Transfer>> GetPendingAsync(
         int maxCount,
         CancellationToken cancellationToken = default);
+
+    Task<bool> TryClaimAsync(
+        Guid id,
+        DateTimeOffset processingStartedUtc,
+        CancellationToken cancellationToken = default);
+
+    Task<int> RequeueAbandonedAsync(
+        DateTimeOffset startedBeforeUtc,
+        CancellationToken cancellationToken = default);
 }

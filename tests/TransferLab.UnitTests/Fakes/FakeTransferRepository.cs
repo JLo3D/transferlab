@@ -40,6 +40,37 @@ public class FakeTransferRepository : ITransferRepository
         return Task.FromResult<IReadOnlyList<Transfer>>(pending);
     }
 
+    public Task<bool> TryClaimAsync(
+        Guid id,
+        DateTimeOffset processingStartedUtc,
+        CancellationToken cancellationToken = default)
+    {
+        var transfer = Transfers.FirstOrDefault(x => x.Id == id);
+
+        if (transfer is null || transfer.Status != TransferStatus.Pending)
+            return Task.FromResult(false);
+
+        transfer.MarkProcessing(processingStartedUtc);
+
+        return Task.FromResult(true);
+    }
+
+    public Task<int> RequeueAbandonedAsync(
+        DateTimeOffset startedBeforeUtc,
+        CancellationToken cancellationToken = default)
+    {
+        var abandoned = Transfers
+            .Where(x =>
+                x.Status == TransferStatus.Processing &&
+                x.ProcessingStartedUtc < startedBeforeUtc)
+            .ToList();
+
+        foreach (var transfer in abandoned)
+            transfer.ReleaseForRetry();
+
+        return Task.FromResult(abandoned.Count);
+    }
+
     public Task SaveChangesAsync(
         CancellationToken cancellationToken = default)
     {

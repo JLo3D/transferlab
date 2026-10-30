@@ -52,11 +52,17 @@ namespace TransferLab.Infrastructure.Persistence.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<int>("AttemptCount")
+                        .HasColumnType("int");
+
                     b.Property<DateTimeOffset>("CreatedUtc")
                         .HasColumnType("datetimeoffset");
 
                     b.Property<Guid>("DestinationAccountId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("ProcessingStartedUtc")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<Guid>("SourceAccountId")
                         .HasColumnType("uniqueidentifier");
@@ -72,7 +78,9 @@ namespace TransferLab.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("SourceAccountId");
 
-                    b.HasIndex("Status");
+                    b.HasIndex("Status", "CreatedUtc");
+
+                    b.HasIndex("Status", "ProcessingStartedUtc");
 
                     b.ToTable("Transfers", (string)null);
                 });

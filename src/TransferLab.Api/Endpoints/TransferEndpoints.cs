@@ -47,7 +47,10 @@ public static class TransferEndpoints
                     cancellationToken);
 
                 return result is null
-                    ? Results.NotFound()
+                    ? Results.Problem(
+                        statusCode: StatusCodes.Status404NotFound,
+                        title: "Transfer not found",
+                        detail: $"Transfer '{id}' was not found.")
                     : Results.Ok(result);
             });
 

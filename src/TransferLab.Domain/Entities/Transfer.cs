@@ -10,6 +10,8 @@ public class Transfer
     public decimal Amount { get; set; }    
     public TransferStatus Status { get; set; }    
     public DateTimeOffset CreatedUtc { get; set; }
+    public DateTimeOffset? ProcessingStartedUtc { get; set; }
+    public int AttemptCount { get; set; }
     private Transfer()
     {
     }
@@ -38,14 +40,19 @@ public class Transfer
         Amount = amount;
         Status = TransferStatus.Pending;
         CreatedUtc = DateTimeOffset.UtcNow;
+        ProcessingStartedUtc = null;
+        AttemptCount = 0;
     }
 
-    public void MarkProcessing()
+    public void MarkProcessing(
+        DateTimeOffset? processingStartedUtc = null)
     {
         if (Status != TransferStatus.Pending)
             throw new InvalidOperationException($"Cannot move transfer from {Status} to Processing.");
-        
+
         Status = TransferStatus.Processing;
+        ProcessingStartedUtc = processingStartedUtc ?? DateTimeOffset.UtcNow;
+        AttemptCount++;
     }
     
     public void MarkCompleted()
@@ -62,5 +69,15 @@ public class Transfer
                 $"Cannot move transfer from {Status} to Failed.");
 
         Status = TransferStatus.Failed;
+    }
+
+    public void ReleaseForRetry()
+    {
+        if (Status != TransferStatus.Processing)
+            throw new InvalidOperationException(
+                $"Cannot release transfer from {Status} for retry.");
+
+        Status = TransferStatus.Pending;
+        ProcessingStartedUtc = null;
     }
 }

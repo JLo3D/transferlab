@@ -46,7 +46,10 @@ public static class AccountEndpoints
                     cancellationToken);
 
                 return result is null
-                    ? Results.NotFound()
+                    ? Results.Problem(
+                        statusCode: StatusCodes.Status404NotFound,
+                        title: "Account not found",
+                        detail: $"Account '{id}' was not found.")
                     : Results.Ok(result);
             });
 

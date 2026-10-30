@@ -6,4 +6,6 @@ public record GetTransferResult(
     Guid DestinationAccountId,
     decimal Amount,
     string Status,
-    DateTimeOffset CreatedUtc);
+    DateTimeOffset CreatedUtc,
+    DateTimeOffset? ProcessingStartedUtc,
+    int AttemptCount);
