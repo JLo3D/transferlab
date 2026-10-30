@@ -60,24 +60,72 @@ public class TransferEndpointTests
             "Destination Account",
             100m);
 
-        var createTransferResponse = await client.PostAsJsonAsync(
-            "/api/transfers",
-            new
-            {
+        var idempotencyKey = $"transfer-{Guid.NewGuid():N}";
+        var createTransferResponses = await Task.WhenAll(
+            CreateTransferAsync(
+                client,
                 sourceAccountId,
                 destinationAccountId,
-                amount = 125m
-            });
+                125m,
+                idempotencyKey),
+            CreateTransferAsync(
+                client,
+                sourceAccountId,
+                destinationAccountId,
+                125m,
+                idempotencyKey));
 
         Assert.Equal(
-            HttpStatusCode.Created,
-            createTransferResponse.StatusCode);
+            1,
+            createTransferResponses.Count(x =>
+                x.StatusCode == HttpStatusCode.Created));
+        Assert.Equal(
+            1,
+            createTransferResponses.Count(x =>
+                x.StatusCode == HttpStatusCode.OK));
 
-        var createdTransfer = await createTransferResponse.Content
-            .ReadFromJsonAsync<CreateResponse>();
+        var createdTransfers = await Task.WhenAll(
+            createTransferResponses.Select(response =>
+                response.Content.ReadFromJsonAsync<CreateResponse>()));
 
-        Assert.NotNull(createdTransfer);
-        Assert.NotEqual(Guid.Empty, createdTransfer.Id);
+        Assert.All(createdTransfers, Assert.NotNull);
+        Assert.Equal(
+            createdTransfers[0]!.Id,
+            createdTransfers[1]!.Id);
+
+        var createdTransfer = createdTransfers[0];
+
+        Assert.NotEqual(Guid.Empty, createdTransfer!.Id);
+
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            var dbContext = scope.ServiceProvider
+                .GetRequiredService<TransferLabDbContext>();
+
+            var persistedCount = await dbContext.Transfers
+                .CountAsync(x => x.IdempotencyKey == idempotencyKey);
+
+            Assert.Equal(1, persistedCount);
+        }
+
+        var conflictingReplayResponse = await CreateTransferAsync(
+            client,
+            sourceAccountId,
+            destinationAccountId,
+            126m,
+            idempotencyKey);
+
+        Assert.Equal(
+            HttpStatusCode.Conflict,
+            conflictingReplayResponse.StatusCode);
+
+        var conflictingReplayProblem = await conflictingReplayResponse.Content
+            .ReadFromJsonAsync<ProblemDetails>();
+
+        Assert.NotNull(conflictingReplayProblem);
+        Assert.Equal(
+            "Idempotency conflict",
+            conflictingReplayProblem.Title);
 
         var pendingTransfer = await client
             .GetFromJsonAsync<TransferResponse>(
@@ -191,6 +239,32 @@ public class TransferEndpointTests
         Assert.NotNull(createdAccount);
 
         return createdAccount.Id;
+    }
+
+    private static Task<HttpResponseMessage> CreateTransferAsync(
+        HttpClient client,
+        Guid sourceAccountId,
+        Guid destinationAccountId,
+        decimal amount,
+        string idempotencyKey)
+    {
+        var request = new HttpRequestMessage(
+            HttpMethod.Post,
+            "/api/transfers")
+        {
+            Content = JsonContent.Create(new
+            {
+                sourceAccountId,
+                destinationAccountId,
+                amount
+            })
+        };
+
+        request.Headers.Add(
+            "Idempotency-Key",
+            idempotencyKey);
+
+        return client.SendAsync(request);
     }
 
     private sealed record CreateResponse(Guid Id);
