@@ -8,10 +8,13 @@ public sealed class TransferLabDbContextFactory
 {
     public TransferLabDbContext CreateDbContext(string[] args)
     {
+        var connectionString = Environment.GetEnvironmentVariable(
+            "TRANSFERLAB_CONNECTION_STRING")
+            ?? "Server=localhost;Database=TransferLab;" +
+            "Integrated Security=True;TrustServerCertificate=True";
+
         var options = new DbContextOptionsBuilder<TransferLabDbContext>()
-            .UseSqlServer(
-                "Server=localhost;Database=TransferLab;" +
-                "Integrated Security=True;TrustServerCertificate=True")
+            .UseSqlServer(connectionString)
             .Options;
 
         return new TransferLabDbContext(options);
