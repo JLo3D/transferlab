@@ -25,6 +25,36 @@ public class TransferTests
         Assert.NotEqual(default, transfer.CreatedUtc);
         Assert.Null(transfer.ProcessingStartedUtc);
         Assert.Equal(0, transfer.AttemptCount);
+        Assert.Null(transfer.IdempotencyKey);
+    }
+
+    [Fact]
+    public void Constructor_WithIdempotencyKey_PreservesKey()
+    {
+        var transfer = new Transfer(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            100m,
+            "client-request-123");
+
+        Assert.Equal("client-request-123", transfer.IdempotencyKey);
+    }
+
+    [Fact]
+    public void Constructor_WithOversizedIdempotencyKey_ThrowsArgumentException()
+    {
+        var idempotencyKey = new string(
+            'x',
+            Transfer.MaxIdempotencyKeyLength + 1);
+
+        var exception = Assert.Throws<ArgumentException>(() =>
+            new Transfer(
+                Guid.NewGuid(),
+                Guid.NewGuid(),
+                100m,
+                idempotencyKey));
+
+        Assert.Equal("idempotencyKey", exception.ParamName);
     }
 
     [Fact]

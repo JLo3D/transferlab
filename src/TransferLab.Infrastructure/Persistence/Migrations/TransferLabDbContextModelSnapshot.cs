@@ -61,6 +61,10 @@ namespace TransferLab.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("DestinationAccountId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("IdempotencyKey")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<DateTimeOffset?>("ProcessingStartedUtc")
                         .HasColumnType("datetimeoffset");
 
@@ -75,6 +79,10 @@ namespace TransferLab.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("DestinationAccountId");
+
+                    b.HasIndex("IdempotencyKey")
+                        .IsUnique()
+                        .HasFilter("[IdempotencyKey] IS NOT NULL");
 
                     b.HasIndex("SourceAccountId");
 

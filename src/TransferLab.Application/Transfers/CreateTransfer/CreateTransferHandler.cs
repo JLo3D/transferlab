@@ -20,14 +20,26 @@ public class CreateTransferHandler
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<Guid> HandleAsync(
+    public async Task<CreateTransferResult> HandleAsync(
         CreateTransferCommand command,
         CancellationToken cancellationToken = default)
     {
+        if (command.IdempotencyKey is not null)
+        {
+            var existingTransfer = await _transferRepository
+                .GetByIdempotencyKeyAsync(
+                    command.IdempotencyKey,
+                    cancellationToken);
+
+            if (existingTransfer is not null)
+                return ResolveReplay(existingTransfer, command);
+        }
+
         var transfer = new Transfer(
             command.SourceAccountId,
             command.DestinationAccountId,
-            command.Amount);
+            command.Amount,
+            command.IdempotencyKey);
 
         var sourceAccount = await _accountRepository.GetByIdAsync(
             command.SourceAccountId,
@@ -51,8 +63,44 @@ public class CreateTransferHandler
             transfer,
             cancellationToken);
 
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+        catch (UniqueConstraintException)
+            when (command.IdempotencyKey is not null)
+        {
+            var existingTransfer = await _transferRepository
+                .GetByIdempotencyKeyAsync(
+                    command.IdempotencyKey,
+                    cancellationToken);
 
-        return transfer.Id;
+            if (existingTransfer is null)
+                throw;
+
+            return ResolveReplay(existingTransfer, command);
+        }
+
+        return new CreateTransferResult(
+            transfer.Id,
+            Created: true);
+    }
+
+    private static CreateTransferResult ResolveReplay(
+        Transfer existingTransfer,
+        CreateTransferCommand command)
+    {
+        var payloadMatches =
+            existingTransfer.SourceAccountId == command.SourceAccountId &&
+            existingTransfer.DestinationAccountId == command.DestinationAccountId &&
+            existingTransfer.Amount == command.Amount;
+
+        if (!payloadMatches)
+            throw new IdempotencyConflictException(
+                command.IdempotencyKey!);
+
+        return new CreateTransferResult(
+            existingTransfer.Id,
+            Created: false);
     }
 }

@@ -29,16 +29,19 @@ public class CreateTransferHandlerTests
         var command = new CreateTransferCommand(
             sourceAccount.Id,
             destinationAccount.Id,
-            125m);
+            125m,
+            "unit-test-transfer");
         
-        var transferId = await handler.HandleAsync(command);
+        var result = await handler.HandleAsync(command);
         
         var transfer = Assert.Single(repository.Transfers);
 
-        Assert.Equal(transferId, transfer.Id);
+        Assert.True(result.Created);
+        Assert.Equal(result.TransferId, transfer.Id);
         Assert.Equal(sourceAccount.Id, transfer.SourceAccountId);
         Assert.Equal(destinationAccount.Id, transfer.DestinationAccountId);
         Assert.Equal(125m, transfer.Amount);
+        Assert.Equal("unit-test-transfer", transfer.IdempotencyKey);
         Assert.Equal(TransferStatus.Pending, transfer.Status);
         Assert.True(unitOfWork.SaveChangesCalled);
     }
@@ -67,6 +70,71 @@ public class CreateTransferHandlerTests
 
         Assert.StartsWith("Source account", exception.Message);
         Assert.Empty(transferRepository.Transfers);
+        Assert.False(unitOfWork.SaveChangesCalled);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WithMatchingIdempotencyKey_ReturnsExistingTransfer()
+    {
+        var accountRepository = new FakeAccountRepository();
+        var transferRepository = new FakeTransferRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var sourceAccountId = Guid.NewGuid();
+        var destinationAccountId = Guid.NewGuid();
+        var existingTransfer = new Transfer(
+            sourceAccountId,
+            destinationAccountId,
+            25m,
+            "replay-key");
+
+        await transferRepository.AddAsync(existingTransfer);
+
+        var handler = new CreateTransferHandler(
+            accountRepository,
+            transferRepository,
+            unitOfWork);
+
+        var result = await handler.HandleAsync(
+            new CreateTransferCommand(
+                sourceAccountId,
+                destinationAccountId,
+                25m,
+                "replay-key"));
+
+        Assert.False(result.Created);
+        Assert.Equal(existingTransfer.Id, result.TransferId);
+        Assert.Single(transferRepository.Transfers);
+        Assert.False(unitOfWork.SaveChangesCalled);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WithReusedKeyAndDifferentPayload_ThrowsConflict()
+    {
+        var accountRepository = new FakeAccountRepository();
+        var transferRepository = new FakeTransferRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var existingTransfer = new Transfer(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            25m,
+            "conflict-key");
+
+        await transferRepository.AddAsync(existingTransfer);
+
+        var handler = new CreateTransferHandler(
+            accountRepository,
+            transferRepository,
+            unitOfWork);
+
+        await Assert.ThrowsAsync<IdempotencyConflictException>(() =>
+            handler.HandleAsync(
+                new CreateTransferCommand(
+                    existingTransfer.SourceAccountId,
+                    existingTransfer.DestinationAccountId,
+                    50m,
+                    "conflict-key")));
+
+        Assert.Single(transferRepository.Transfers);
         Assert.False(unitOfWork.SaveChangesCalled);
     }
 }

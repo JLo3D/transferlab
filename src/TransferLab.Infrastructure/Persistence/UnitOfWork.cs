@@ -1,4 +1,7 @@
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using TransferLab.Application.Abstractions.Persistence;
+using TransferLab.Application.Common.Exceptions;
 
 namespace TransferLab.Infrastructure.Persistence;
 
@@ -11,9 +14,22 @@ public class UnitOfWork : IUnitOfWork
         _dbContext = dbContext;
     }
 
-    public Task SaveChangesAsync(
+    public async Task SaveChangesAsync(
         CancellationToken cancellationToken = default)
     {
-        return _dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception)
+            when (exception.InnerException is SqlException
+            {
+                Number: 2601 or 2627
+            })
+        {
+            throw new UniqueConstraintException(
+                "A unique persistence constraint was violated.",
+                exception);
+        }
     }
 }

@@ -24,6 +24,17 @@ public class TransferRepository : ITransferRepository
                 cancellationToken);
     }
 
+    public Task<Transfer?> GetByIdempotencyKeyAsync(
+        string idempotencyKey,
+        CancellationToken cancellationToken = default)
+    {
+        return _dbContext.Transfers
+            .AsNoTracking()
+            .SingleOrDefaultAsync(
+                transfer => transfer.IdempotencyKey == idempotencyKey,
+                cancellationToken);
+    }
+
     public async Task AddAsync(
         Transfer transfer,
         CancellationToken cancellationToken = default)

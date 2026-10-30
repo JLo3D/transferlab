@@ -4,6 +4,8 @@ namespace TransferLab.Domain.Entities;
 
 public class Transfer
 {
+    public const int MaxIdempotencyKeyLength = 100;
+
     public Guid Id { get; set; }
     public Guid SourceAccountId { get; set; }    
     public Guid DestinationAccountId { get; set; }    
@@ -12,11 +14,16 @@ public class Transfer
     public DateTimeOffset CreatedUtc { get; set; }
     public DateTimeOffset? ProcessingStartedUtc { get; set; }
     public int AttemptCount { get; set; }
+    public string? IdempotencyKey { get; set; }
     private Transfer()
     {
     }
     
-    public Transfer(Guid sourceAccountId, Guid destinationAccountId, decimal amount)
+    public Transfer(
+        Guid sourceAccountId,
+        Guid destinationAccountId,
+        decimal amount,
+        string? idempotencyKey = null)
     {
         if (sourceAccountId == Guid.Empty)
             throw new ArgumentException(
@@ -33,6 +40,14 @@ public class Transfer
             throw new ArgumentOutOfRangeException(
                 nameof(amount),
                 "Transfer amount must be greater than zero.");
+        if (idempotencyKey is not null && string.IsNullOrWhiteSpace(idempotencyKey))
+            throw new ArgumentException(
+                "Idempotency key cannot be empty.",
+                nameof(idempotencyKey));
+        if (idempotencyKey?.Length > MaxIdempotencyKeyLength)
+            throw new ArgumentException(
+                $"Idempotency key cannot exceed {MaxIdempotencyKeyLength} characters.",
+                nameof(idempotencyKey));
         
         Id = Guid.NewGuid();
         SourceAccountId = sourceAccountId;
@@ -42,6 +57,7 @@ public class Transfer
         CreatedUtc = DateTimeOffset.UtcNow;
         ProcessingStartedUtc = null;
         AttemptCount = 0;
+        IdempotencyKey = idempotencyKey;
     }
 
     public void MarkProcessing(

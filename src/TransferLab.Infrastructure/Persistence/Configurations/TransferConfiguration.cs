@@ -26,6 +26,9 @@ public class TransferConfiguration : IEntityTypeConfiguration<Transfer>
         builder.Property(x => x.AttemptCount)
             .IsRequired();
 
+        builder.Property(x => x.IdempotencyKey)
+            .HasMaxLength(Transfer.MaxIdempotencyKeyLength);
+
         builder.HasIndex(x => x.SourceAccountId);
 
         builder.HasIndex(x => x.DestinationAccountId);
@@ -41,6 +44,10 @@ public class TransferConfiguration : IEntityTypeConfiguration<Transfer>
             x.Status,
             x.ProcessingStartedUtc
         });
+
+        builder.HasIndex(x => x.IdempotencyKey)
+            .IsUnique()
+            .HasFilter("[IdempotencyKey] IS NOT NULL");
         
         builder.HasOne<Account>()
             .WithMany()

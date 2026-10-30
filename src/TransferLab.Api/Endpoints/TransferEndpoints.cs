@@ -18,21 +18,27 @@ public static class TransferEndpoints
             "/",
             async (
                 CreateTransferRequest request,
+                [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
                 [FromServices] CreateTransferHandler handler,
                 CancellationToken cancellationToken) =>
             {
                 var command = new CreateTransferCommand(
                     request.SourceAccountId,
                     request.DestinationAccountId,
-                    request.Amount);
+                    request.Amount,
+                    idempotencyKey);
 
-                var transferId = await handler.HandleAsync(
+                var result = await handler.HandleAsync(
                     command,
                     cancellationToken);
 
-                return Results.Created(
-                    $"/api/transfers/{transferId}",
-                    new { id = transferId });
+                var response = new { id = result.TransferId };
+
+                return result.Created
+                    ? Results.Created(
+                        $"/api/transfers/{result.TransferId}",
+                        response)
+                    : Results.Ok(response);
             });
 
         group.MapGet(

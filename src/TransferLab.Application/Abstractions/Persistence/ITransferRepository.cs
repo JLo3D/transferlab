@@ -8,6 +8,10 @@ public interface ITransferRepository
         Guid id,
         CancellationToken cancellationToken = default);
 
+    Task<Transfer?> GetByIdempotencyKeyAsync(
+        string idempotencyKey,
+        CancellationToken cancellationToken = default);
+
     Task AddAsync(
         Transfer transfer,
         CancellationToken cancellationToken = default);

@@ -55,6 +55,14 @@ public sealed class ApiExceptionHandler(
                 StatusCodes.Status404NotFound,
                 "Resource not found",
                 exception.Message),
+            IdempotencyConflictException => (
+                StatusCodes.Status409Conflict,
+                "Idempotency conflict",
+                exception.Message),
+            UniqueConstraintException => (
+                StatusCodes.Status409Conflict,
+                "Persistence conflict",
+                "The request conflicts with an existing resource."),
             ArgumentException => (
                 StatusCodes.Status400BadRequest,
                 "Invalid request",
