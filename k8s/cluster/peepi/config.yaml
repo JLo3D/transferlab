@@ -1,0 +1,9 @@
+data-dir: /mnt/nvme/k3s
+default-local-storage-path: /mnt/nvme/k3s/storage
+secrets-encryption: true
+write-kubeconfig-mode: "0600"
+node-name: peepi
+tls-san:
+  - peepi
+  - 192.168.1.179
+  - 10.0.0.1
