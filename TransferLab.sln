@@ -5,6 +5,33 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72D-47B6-A68D-7590B98EB39B}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "TransferLab.Web", "TransferLab.Web", "{3623E33A-C243-4DBB-AAC0-2AF981301E95}"
+	ProjectSection(SolutionItems) = preProject
+		src\TransferLab.Web\.env.example = src\TransferLab.Web\.env.example
+		src\TransferLab.Web\index.html = src\TransferLab.Web\index.html
+		src\TransferLab.Web\package.json = src\TransferLab.Web\package.json
+		src\TransferLab.Web\pnpm-lock.yaml = src\TransferLab.Web\pnpm-lock.yaml
+		src\TransferLab.Web\src\api\client.ts = src\TransferLab.Web\src\api\client.ts
+		src\TransferLab.Web\src\api\types.ts = src\TransferLab.Web\src\api\types.ts
+		src\TransferLab.Web\src\App.tsx = src\TransferLab.Web\src\App.tsx
+		src\TransferLab.Web\src\components\AccountCard.tsx = src\TransferLab.Web\src\components\AccountCard.tsx
+		src\TransferLab.Web\src\components\EmptyState.tsx = src\TransferLab.Web\src\components\EmptyState.tsx
+		src\TransferLab.Web\src\components\MetricCard.tsx = src\TransferLab.Web\src\components\MetricCard.tsx
+		src\TransferLab.Web\src\components\StatusBadge.tsx = src\TransferLab.Web\src\components\StatusBadge.tsx
+		src\TransferLab.Web\src\features\accounts\CreateAccountForm.tsx = src\TransferLab.Web\src\features\accounts\CreateAccountForm.tsx
+		src\TransferLab.Web\src\features\transfers\CreateTransferForm.tsx = src\TransferLab.Web\src\features\transfers\CreateTransferForm.tsx
+		src\TransferLab.Web\src\features\transfers\TransferActivity.tsx = src\TransferLab.Web\src\features\transfers\TransferActivity.tsx
+		src\TransferLab.Web\src\lib\format.ts = src\TransferLab.Web\src\lib\format.ts
+		src\TransferLab.Web\src\lib\workspace.ts = src\TransferLab.Web\src\lib\workspace.ts
+		src\TransferLab.Web\src\main.tsx = src\TransferLab.Web\src\main.tsx
+		src\TransferLab.Web\src\styles.css = src\TransferLab.Web\src\styles.css
+		src\TransferLab.Web\src\vite-env.d.ts = src\TransferLab.Web\src\vite-env.d.ts
+		src\TransferLab.Web\tsconfig.app.json = src\TransferLab.Web\tsconfig.app.json
+		src\TransferLab.Web\tsconfig.json = src\TransferLab.Web\tsconfig.json
+		src\TransferLab.Web\tsconfig.node.json = src\TransferLab.Web\tsconfig.node.json
+		src\TransferLab.Web\vite.config.ts = src\TransferLab.Web\vite.config.ts
+	EndProjectSection
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TransferLab.Domain", "src\TransferLab.Domain\TransferLab.Domain.csproj", "{BDC19B6F-3FE9-4207-8445-51C27AC80FD1}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TransferLab.Application", "src\TransferLab.Application\TransferLab.Application.csproj", "{B27A1785-D27F-45A7-ACA6-9F81B1BF7129}"
@@ -120,6 +147,7 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{3623E33A-C243-4DBB-AAC0-2AF981301E95} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{BDC19B6F-3FE9-4207-8445-51C27AC80FD1} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{B27A1785-D27F-45A7-ACA6-9F81B1BF7129} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{7F00A2D0-6810-4A30-9277-DDD17F612B6A} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
