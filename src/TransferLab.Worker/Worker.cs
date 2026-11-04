@@ -1,14 +1,15 @@
 using TransferLab.Application.Abstractions.Persistence;
 using TransferLab.Application.Transfers.ProcessTransfer;
+using Microsoft.Extensions.Options;
 
 namespace TransferLab.Worker;
 
 public class Worker(
     ILogger<Worker> logger,
-    IServiceScopeFactory scopeFactory) : BackgroundService
+    IServiceScopeFactory scopeFactory,
+    IOptions<WorkerOptions> options) : BackgroundService
 {
-    private static readonly TimeSpan ProcessingTimeout =
-        TimeSpan.FromMinutes(5);
+    private readonly WorkerOptions _options = options.Value;
 
     protected override async Task ExecuteAsync(
         CancellationToken stoppingToken)
@@ -39,7 +40,7 @@ public class Worker(
             }
 
             await Task.Delay(
-                TimeSpan.FromSeconds(2),
+                _options.PollInterval,
                 stoppingToken);
         }
     }
@@ -54,7 +55,7 @@ public class Worker(
             .GetRequiredService<ITransferRepository>();
 
         var startedBeforeUtc =
-            DateTimeOffset.UtcNow - ProcessingTimeout;
+            DateTimeOffset.UtcNow - _options.ProcessingTimeout;
 
         var recoveredCount = await repository.RequeueAbandonedAsync(
             startedBeforeUtc,
@@ -78,7 +79,7 @@ public class Worker(
             .GetRequiredService<ITransferRepository>();
 
         var transfers = await repository.GetPendingAsync(
-            10,
+            _options.BatchSize,
             cancellationToken);
 
         return transfers
