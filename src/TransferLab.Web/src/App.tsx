@@ -13,6 +13,7 @@ import { CreateAccountForm } from "./features/accounts/CreateAccountForm";
 import { CreateTransferForm } from "./features/transfers/CreateTransferForm";
 import { TransferActivity } from "./features/transfers/TransferActivity";
 import { formatMoney } from "./lib/format";
+import { createIdempotencyKey } from "./lib/idempotency";
 
 type ApiState = "unverified" | "online" | "offline";
 
@@ -92,7 +93,7 @@ export default function App() {
   }
 
   async function handleCreateTransfer(input: CreateTransferInput) {
-    const idempotencyKey = `web-${crypto.randomUUID()}`;
+    const idempotencyKey = createIdempotencyKey();
     await transferLabApi.createTransfer(input, idempotencyKey);
     await Promise.all([refreshTransfers(), refreshAccounts()]);
     setApiState("online");
