@@ -49,6 +49,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const transferLabApi = {
+  listAccounts() {
+    return request<Account[]>("/api/accounts/");
+  },
+
   createAccount(input: CreateAccountInput) {
     return request<CreatedResource>("/api/accounts/", {
       method: "POST",
@@ -59,6 +63,10 @@ export const transferLabApi = {
 
   getAccount(id: string) {
     return request<Account>(`/api/accounts/${id}`);
+  },
+
+  listTransfers() {
+    return request<Transfer[]>("/api/transfers/");
   },
 
   createTransfer(input: CreateTransferInput, idempotencyKey: string) {

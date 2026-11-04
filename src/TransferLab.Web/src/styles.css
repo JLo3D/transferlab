@@ -204,20 +204,6 @@ select:focus-visible {
   box-shadow: 0 0 0 4px rgba(228, 137, 131, 0.14);
 }
 
-.text-button {
-  width: fit-content;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: rgba(244, 248, 246, 0.54);
-  cursor: pointer;
-  font-size: 0.72rem;
-}
-
-.text-button:hover {
-  color: var(--color-sidebar-text);
-}
-
 .main-content {
   width: 100%;
   max-width: 1500px;

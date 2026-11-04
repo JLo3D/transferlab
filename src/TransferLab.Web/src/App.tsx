@@ -13,13 +13,6 @@ import { CreateAccountForm } from "./features/accounts/CreateAccountForm";
 import { CreateTransferForm } from "./features/transfers/CreateTransferForm";
 import { TransferActivity } from "./features/transfers/TransferActivity";
 import { formatMoney } from "./lib/format";
-import {
-  loadWorkspace,
-  registerAccount,
-  registerTransfer,
-  saveWorkspace,
-  type WorkspaceIndex,
-} from "./lib/workspace";
 
 type ApiState = "unverified" | "online" | "offline";
 
@@ -32,47 +25,23 @@ function sortTransfers(transfers: Transfer[]): Transfer[] {
 }
 
 export default function App() {
-  const [workspace, setWorkspace] = useState<WorkspaceIndex>(loadWorkspace);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [transfers, setTransfers] = useState<Transfer[]>([]);
   const [apiState, setApiState] = useState<ApiState>("unverified");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshError, setRefreshError] = useState<string | null>(null);
 
-  useEffect(() => saveWorkspace(workspace), [workspace]);
-
   const refreshAccounts = useCallback(async () => {
-    if (workspace.accountIds.length === 0) {
-      setAccounts([]);
-      return;
-    }
-
-    const nextAccounts = await Promise.all(
-      workspace.accountIds.map((id) => transferLabApi.getAccount(id)),
-    );
+    const nextAccounts = await transferLabApi.listAccounts();
     setAccounts(nextAccounts);
-  }, [workspace.accountIds]);
+  }, []);
 
   const refreshTransfers = useCallback(async () => {
-    if (workspace.transferIds.length === 0) {
-      setTransfers([]);
-      return;
-    }
-
-    const nextTransfers = await Promise.all(
-      workspace.transferIds.map((id) => transferLabApi.getTransfer(id)),
-    );
+    const nextTransfers = await transferLabApi.listTransfers();
     setTransfers(sortTransfers(nextTransfers));
-  }, [workspace.transferIds]);
+  }, []);
 
   const refreshWorkspace = useCallback(async () => {
-    if (
-      workspace.accountIds.length === 0 &&
-      workspace.transferIds.length === 0
-    ) {
-      return;
-    }
-
     try {
       setIsRefreshing(true);
       setRefreshError(null);
@@ -84,7 +53,7 @@ export default function App() {
     } finally {
       setIsRefreshing(false);
     }
-  }, [refreshAccounts, refreshTransfers, workspace]);
+  }, [refreshAccounts, refreshTransfers]);
 
   useEffect(() => {
     void refreshWorkspace();
@@ -116,39 +85,17 @@ export default function App() {
   }, [hasActiveTransfer, refreshAccounts, refreshTransfers]);
 
   async function handleCreateAccount(input: CreateAccountInput) {
-    const created = await transferLabApi.createAccount(input);
-    setWorkspace((current) => registerAccount(current, created.id));
-
-    const account = await transferLabApi.getAccount(created.id);
-    setAccounts((current) => [
-      ...current.filter((item) => item.id !== account.id),
-      account,
-    ]);
+    await transferLabApi.createAccount(input);
+    await refreshAccounts();
     setApiState("online");
     setRefreshError(null);
   }
 
   async function handleCreateTransfer(input: CreateTransferInput) {
     const idempotencyKey = `web-${crypto.randomUUID()}`;
-    const created = await transferLabApi.createTransfer(input, idempotencyKey);
-    setWorkspace((current) => registerTransfer(current, created.id));
-
-    const transfer = await transferLabApi.getTransfer(created.id);
-    setTransfers((current) =>
-      sortTransfers([
-        transfer,
-        ...current.filter((item) => item.id !== transfer.id),
-      ]),
-    );
+    await transferLabApi.createTransfer(input, idempotencyKey);
+    await Promise.all([refreshTransfers(), refreshAccounts()]);
     setApiState("online");
-    setRefreshError(null);
-  }
-
-  function clearLocalWorkspace() {
-    setWorkspace({ accountIds: [], transferIds: [] });
-    setAccounts([]);
-    setTransfers([]);
-    setApiState("unverified");
     setRefreshError(null);
   }
 
@@ -207,12 +154,9 @@ export default function App() {
                     ? "API unavailable"
                     : "API not checked"}
               </strong>
-              <small>Local environment</small>
+              <small>peepi Kubernetes</small>
             </span>
           </div>
-          <button className="text-button" onClick={clearLocalWorkspace}>
-            Clear local view
-          </button>
         </div>
       </aside>
 
@@ -246,14 +190,14 @@ export default function App() {
 
         <section className="metrics-grid" aria-label="Workspace summary">
           <MetricCard
-            label="Known accounts"
+            label="Accounts"
             value={accounts.length.toString().padStart(2, "0")}
-            detail="Indexed in this browser"
+            detail="Stored in the database"
           />
           <MetricCard
             label="Combined balance"
             value={formatMoney(totalBalance)}
-            detail="Across known accounts"
+            detail="Across all accounts"
             tone="accent"
           />
           <MetricCard
@@ -264,7 +208,7 @@ export default function App() {
           <MetricCard
             label="Completed"
             value={completedCount.toString().padStart(2, "0")}
-            detail="In this workspace"
+            detail="Recent transfer activity"
             tone="positive"
           />
         </section>
@@ -281,8 +225,8 @@ export default function App() {
 
             {accounts.length === 0 ? (
               <EmptyState
-                title="Start with an account"
-                detail="Create two accounts to unlock the full transfer workflow."
+                title="No accounts yet"
+                detail="Create two accounts to unlock the transfer workflow."
               />
             ) : (
               <div className="account-list">
