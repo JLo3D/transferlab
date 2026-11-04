@@ -104,8 +104,10 @@ The database enforces uniqueness as the final race-condition guard.
 | Method | Route | Purpose |
 |---|---|---|
 | `POST` | `/api/accounts` | Create an account |
+| `GET` | `/api/accounts` | List all accounts |
 | `GET` | `/api/accounts/{id}` | Read an account |
 | `POST` | `/api/transfers` | Queue a transfer |
+| `GET` | `/api/transfers` | List the 100 most recent transfers |
 | `GET` | `/api/transfers/{id}` | Read status and attempt details |
 
 Example transfer request:
