@@ -11,3 +11,8 @@
 **/bin/
 **/obj/
 .env
+
+# Web build artifacts
+**/node_modules/
+**/dist/
+*.tsbuildinfo
