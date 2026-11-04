@@ -1,7 +1,7 @@
 # TransferLab
 
-TransferLab is a completed local reference application for asynchronous,
-database-backed processing in .NET 10. A synthetic account-transfer workflow
+TransferLab is a reference application for asynchronous, database-backed
+processing in .NET 10. A synthetic account-transfer workflow
 provides enough complexity to demonstrate API design, background workers,
 transaction boundaries, concurrency control, retries, idempotency, and real
 SQL Server integration testing.
@@ -11,7 +11,7 @@ does not connect to banks, payment networks, or real customer accounts.
 
 ## Project status
 
-The intended working model is feature-complete:
+The application model and local container stack include:
 
 - account and transfer HTTP endpoints
 - asynchronous transfer processing in a separate worker
@@ -21,22 +21,20 @@ The intended working model is feature-complete:
 - idempotent transfer creation
 - RFC 7807-style API error responses
 - EF Core migrations for SQL Server
+- a React and TypeScript operations UI
+- production images for the API, Worker, migration runner, and Web UI
+- dependency-ordered Docker Compose orchestration
 - unit and disposable-container integration tests
 
-Azure, Kubernetes, Service Bus, and production observability remain possible
-extensions, but they are intentionally outside the completed scope.
+The next delivery phase deploys these same images to Kubernetes.
 
 ## Architecture
 
 ```text
-Client
-  |
-  v
-TransferLab.Api  ---- creates/reads ----+
-                                        |
-TransferLab.Worker ---- processes ------+---- SQL Server 2022
-                                        |
-Integration tests -- isolated DB -------+
+Browser ----------------> TransferLab.Web ----> TransferLab.Api ----+
+TransferLab.Worker -------- processes -------------------------------+----> SQL Server 2022
+TransferLab.Migrations ---- applies schema --------------------------+
+Integration tests --------- use an isolated database ----------------+
 ```
 
 The solution uses a layered dependency structure:
@@ -52,6 +50,8 @@ Domain <- Application <- Infrastructure <- API / Worker
 | `TransferLab.Infrastructure` | EF Core, SQL Server, repositories, migrations |
 | `TransferLab.Api` | HTTP endpoints and Problem Details responses |
 | `TransferLab.Worker` | Polling, recovery, and transfer execution |
+| `TransferLab.Migrations` | Retry-aware, one-shot schema migration runner |
+| `TransferLab.Web` | React UI and Nginx API gateway |
 | `TransferLab.UnitTests` | Domain and application behavior |
 | `TransferLab.IntegrationTests` | Real SQL Server and HTTP behavior |
 
@@ -127,6 +127,7 @@ printed by the API host when it starts.
 
 - .NET 10 SDK
 - Docker Desktop
+- Node.js 20.19+ and pnpm 11 for native UI development
 - Git
 - JetBrains Rider, Visual Studio, or VS Code
 
@@ -148,12 +149,34 @@ Create the local Docker environment file:
 cp .env.example .env
 ```
 
-Replace the placeholder in `.env` with a strong local-only SQL Server password,
-then start the database:
+Replace the placeholder in `.env` with a strong local-only SQL Server password.
+
+### Run the complete stack with Docker Compose
+
+Build and start SQL Server, migrations, API, Worker, and Web:
 
 ```bash
-docker compose --env-file .env -f docker/docker-compose.yml up -d
+docker compose --env-file .env -f docker/docker-compose.yml up -d --build
 ```
+
+Compose waits for SQL Server to become healthy, runs migrations once, starts
+the API and Worker only after migration success, and starts Web after API
+readiness succeeds.
+
+| Service | Local address |
+|---|---|
+| Web UI | `http://localhost:8088` |
+| API | `http://localhost:8080` |
+| SQL Server | `localhost:1433` |
+
+Inspect status and logs:
+
+```bash
+docker compose --env-file .env -f docker/docker-compose.yml ps --all
+docker compose --env-file .env -f docker/docker-compose.yml logs -f
+```
+
+### Run services natively
 
 Configure the same connection string for both executable projects. Replace
 `YOUR_PASSWORD` locally; never commit it.
@@ -184,7 +207,7 @@ Build the solution:
 dotnet build TransferLab.sln
 ```
 
-Run the API and worker in separate terminals:
+Run the API, Worker, and Web UI in separate terminals:
 
 ```bash
 dotnet run --project src/TransferLab.Api
@@ -193,6 +216,15 @@ dotnet run --project src/TransferLab.Api
 ```bash
 dotnet run --project src/TransferLab.Worker
 ```
+
+```bash
+cd src/TransferLab.Web
+pnpm install --frozen-lockfile
+pnpm dev
+```
+
+Vite serves the UI on `http://localhost:5173` and proxies `/api` to the local
+API on port `5204`.
 
 Stop the persistent database without deleting its data:
 
@@ -214,7 +246,15 @@ Docker must be running for integration tests. Testcontainers creates disposable
 SQL Server instances, applies the real migrations, runs the scenarios, and
 removes the containers. Tests never use the persistent development database.
 
-The final project checkpoint contains 27 unit tests and 7 integration tests.
+The current project checkpoint contains 27 unit tests and 8 integration tests.
+
+Validate the Web production bundle separately:
+
+```bash
+cd src/TransferLab.Web
+pnpm install --frozen-lockfile
+pnpm build
+```
 
 ## Repository layout
 
@@ -227,6 +267,8 @@ transferlab/
 │   ├── TransferLab.Application/
 │   ├── TransferLab.Domain/
 │   ├── TransferLab.Infrastructure/
+│   ├── TransferLab.Migrations/
+│   ├── TransferLab.Web/
 │   └── TransferLab.Worker/
 ├── tests/
 │   ├── TransferLab.UnitTests/
@@ -236,13 +278,9 @@ transferlab/
 └── TransferLab.sln
 ```
 
-## Final scope boundary
+## Next delivery phase
 
-TransferLab's finished value is the working model and the engineering decisions
-it demonstrates: separating hosts from use cases, testing against the real
-database engine, handling duplicate requests, claiming work safely, recovering
-interrupted work, and protecting shared state under concurrency.
-
-It is deliberately closed at that boundary. Cloud deployment and broader
-financial-product behavior are not required for the project to serve its
-purpose.
+The local application and container workflow are complete. The next phase adds
+Kubernetes manifests for configuration, secrets, persistent SQL storage, the
+migration Job, API and Web Services, API and Worker Deployments, and health
+probes. Broader financial-product behavior remains outside the project scope.

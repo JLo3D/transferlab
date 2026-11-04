@@ -7,6 +7,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "TransferLab.Web", "TransferLab.Web", "{3623E33A-C243-4DBB-AAC0-2AF981301E95}"
 	ProjectSection(SolutionItems) = preProject
+		src\TransferLab.Web\15-transferlab-resolver.envsh = src\TransferLab.Web\15-transferlab-resolver.envsh
 		src\TransferLab.Web\.env.example = src\TransferLab.Web\.env.example
 		src\TransferLab.Web\Dockerfile = src\TransferLab.Web\Dockerfile
 		src\TransferLab.Web\index.html = src\TransferLab.Web\index.html

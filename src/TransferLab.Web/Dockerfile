@@ -13,7 +13,9 @@ RUN pnpm build
 
 FROM nginx:1.29-alpine AS final
 
-COPY src/TransferLab.Web/nginx.conf /etc/nginx/conf.d/default.conf
+COPY src/TransferLab.Web/nginx.conf /etc/nginx/templates/default.conf.template
+COPY src/TransferLab.Web/15-transferlab-resolver.envsh /docker-entrypoint.d/15-transferlab-resolver.envsh
+RUN chmod +x /docker-entrypoint.d/15-transferlab-resolver.envsh
 COPY --from=build /app/dist /usr/share/nginx/html
 
 EXPOSE 8080
