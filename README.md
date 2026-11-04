@@ -24,9 +24,11 @@ The application model and local container stack include:
 - a React and TypeScript operations UI
 - production images for the API, Worker, migration runner, and Web UI
 - dependency-ordered Docker Compose orchestration
+- remote ARM64 Kubernetes deployment on a Raspberry Pi K3s cluster
+- a Pi-hosted Headlamp Kubernetes operations dashboard
 - unit and disposable-container integration tests
 
-The next delivery phase deploys these same images to Kubernetes.
+The same application images run locally with Compose or remotely on Kubernetes.
 
 ## Architecture
 
@@ -132,7 +134,8 @@ printed by the API host when it starts.
 - JetBrains Rider, Visual Studio, or VS Code
 
 SQL Server runs as an `amd64` container. Docker Desktop handles emulation on
-Apple Silicon.
+Apple Silicon. The Raspberry Pi deployment keeps SQL Server on an x86-64 host
+and runs the four ARM64 application images in K3s.
 
 ## Local setup
 
@@ -175,6 +178,12 @@ Inspect status and logs:
 docker compose --env-file .env -f docker/docker-compose.yml ps --all
 docker compose --env-file .env -f docker/docker-compose.yml logs -f
 ```
+
+### Deploy to the Raspberry Pi K3s cluster
+
+The remote workflow builds ARM64 images on the Mac, loads them into the Pi's
+K3s image store over SSH, runs migrations, and deploys API, Worker, and Web
+workloads. See [`k8s/README.md`](k8s/README.md) for the guided procedure.
 
 ### Run services natively
 
@@ -262,6 +271,10 @@ pnpm build
 transferlab/
 ├── docker/
 │   └── docker-compose.yml
+├── k8s/
+│   ├── cluster/
+│   ├── manifests/
+│   └── scripts/
 ├── src/
 │   ├── TransferLab.Api/
 │   ├── TransferLab.Application/
@@ -278,9 +291,9 @@ transferlab/
 └── TransferLab.sln
 ```
 
-## Next delivery phase
+## Remaining production hardening
 
-The local application and container workflow are complete. The next phase adds
-Kubernetes manifests for configuration, secrets, persistent SQL storage, the
-migration Job, API and Web Services, API and Worker Deployments, and health
-probes. Broader financial-product behavior remains outside the project scope.
+The local and remote deployment workflows are complete. A public deployment
+would still require a container registry, stable DNS, TLS certificates, a
+supported x86-64 or managed SQL Server, and deliberate ingress/firewall rules.
+Broader financial-product behavior remains outside the project scope.

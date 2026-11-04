@@ -1,0 +1,49 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: transferlab-migrations
+  namespace: transferlab
+  labels:
+    app.kubernetes.io/name: transferlab
+    app.kubernetes.io/component: migrations
+spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: 600
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: transferlab
+        app.kubernetes.io/component: migrations
+    spec:
+      automountServiceAccountToken: false
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: migrations
+          image: transferlab-migrations:peepi
+          imagePullPolicy: Never
+          envFrom:
+            - secretRef:
+                name: transferlab-secrets
+          env:
+            - name: DOTNET_ENVIRONMENT
+              value: Production
+            - name: Migration__MaxAttempts
+              value: "60"
+            - name: Migration__RetryDelay
+              value: "00:00:05"
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL

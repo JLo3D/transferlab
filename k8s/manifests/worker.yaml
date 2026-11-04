@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: transferlab-worker
+  namespace: transferlab
+  labels:
+    app.kubernetes.io/name: transferlab
+    app.kubernetes.io/component: worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: transferlab
+      app.kubernetes.io/component: worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: transferlab
+        app.kubernetes.io/component: worker
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: worker
+          image: transferlab-worker:peepi
+          imagePullPolicy: Never
+          envFrom:
+            - configMapRef:
+                name: transferlab-config
+            - secretRef:
+                name: transferlab-secrets
+          env:
+            - name: DOTNET_ENVIRONMENT
+              value: Production
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 750m
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL

@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: transferlab-config
+  namespace: transferlab
+  labels:
+    app.kubernetes.io/name: transferlab
+data:
+  Worker__PollInterval: "00:00:02"
+  Worker__BatchSize: "10"
+  Worker__ProcessingTimeout: "00:05:00"
