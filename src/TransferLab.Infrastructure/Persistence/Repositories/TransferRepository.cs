@@ -35,6 +35,23 @@ public class TransferRepository : ITransferRepository
                 cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Transfer>> ListRecentAsync(
+        int maxCount,
+        CancellationToken cancellationToken = default)
+    {
+        if (maxCount <= 0)
+            throw new ArgumentOutOfRangeException(
+                nameof(maxCount),
+                "Maximum count must be greater than zero.");
+
+        return await _dbContext.Transfers
+            .AsNoTracking()
+            .OrderByDescending(transfer => transfer.CreatedUtc)
+            .ThenByDescending(transfer => transfer.Id)
+            .Take(maxCount)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task AddAsync(
         Transfer transfer,
         CancellationToken cancellationToken = default)

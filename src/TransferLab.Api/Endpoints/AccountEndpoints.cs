@@ -1,6 +1,7 @@
 using TransferLab.Api.Contracts.Accounts;
 using TransferLab.Application.Accounts.CreateAccount;
 using TransferLab.Application.Accounts.GetAccount;
+using TransferLab.Application.Accounts.ListAccounts;
 
 namespace TransferLab.Api.Endpoints;
 using Microsoft.AspNetCore.Mvc;
@@ -13,6 +14,17 @@ public static class AccountEndpoints
         var group = endpoints
             .MapGroup("/api/accounts")
             .WithTags("Accounts");
+
+        group.MapGet(
+            "/",
+            async (
+                [FromServices] ListAccountsHandler handler,
+                CancellationToken cancellationToken) =>
+            {
+                var results = await handler.HandleAsync(cancellationToken);
+
+                return Results.Ok(results);
+            });
 
         group.MapPost(
             "/",

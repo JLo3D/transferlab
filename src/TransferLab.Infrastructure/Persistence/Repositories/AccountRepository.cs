@@ -23,6 +23,16 @@ public class AccountRepository : IAccountRepository
                 cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Account>> ListAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.Accounts
+            .AsNoTracking()
+            .OrderBy(account => account.Name)
+            .ThenBy(account => account.Id)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task AddAsync(
         Account account,
         CancellationToken cancellationToken = default)

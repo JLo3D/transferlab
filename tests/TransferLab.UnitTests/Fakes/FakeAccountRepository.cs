@@ -16,6 +16,17 @@ public class FakeAccountRepository : IAccountRepository
         return Task.FromResult(account);
     }
 
+    public Task<IReadOnlyList<Account>> ListAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var accounts = Accounts
+            .OrderBy(account => account.Name)
+            .ThenBy(account => account.Id)
+            .ToList();
+
+        return Task.FromResult<IReadOnlyList<Account>>(accounts);
+    }
+
     public Task AddAsync(
         Account account,
         CancellationToken cancellationToken = default)

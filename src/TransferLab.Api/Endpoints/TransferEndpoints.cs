@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using TransferLab.Api.Contracts.Transfers;
 using TransferLab.Application.Transfers.CreateTransfer;
 using TransferLab.Application.Transfers.GetTransfer;
+using TransferLab.Application.Transfers.ListTransfers;
 
 namespace TransferLab.Api.Endpoints;
 
@@ -13,6 +14,17 @@ public static class TransferEndpoints
         var group = endpoints
             .MapGroup("/api/transfers")
             .WithTags("Transfers");
+
+        group.MapGet(
+            "/",
+            async (
+                [FromServices] ListTransfersHandler handler,
+                CancellationToken cancellationToken) =>
+            {
+                var results = await handler.HandleAsync(cancellationToken);
+
+                return Results.Ok(results);
+            });
 
         group.MapPost(
             "/",

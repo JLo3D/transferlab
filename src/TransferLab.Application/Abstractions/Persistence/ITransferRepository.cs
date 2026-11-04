@@ -12,6 +12,10 @@ public interface ITransferRepository
         string idempotencyKey,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<Transfer>> ListRecentAsync(
+        int maxCount,
+        CancellationToken cancellationToken = default);
+
     Task AddAsync(
         Transfer transfer,
         CancellationToken cancellationToken = default);

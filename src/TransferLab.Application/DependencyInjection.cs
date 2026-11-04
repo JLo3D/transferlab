@@ -1,6 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using TransferLab.Application.Accounts.CreateAccount;
+using TransferLab.Application.Accounts.ListAccounts;
 using TransferLab.Application.Transfers.CreateTransfer;
+using TransferLab.Application.Transfers.ListTransfers;
 using TransferLab.Application.Transfers.ProcessTransfer;
 using TransferLab.Application.Accounts.GetAccount;
 using TransferLab.Application.Transfers.GetTransfer;
@@ -17,6 +19,8 @@ public static class DependencyInjection
         services.AddScoped<ProcessTransferHandler>();
         services.AddScoped<GetAccountHandler>();
         services.AddScoped<GetTransferHandler>();
+        services.AddScoped<ListAccountsHandler>();
+        services.AddScoped<ListTransfersHandler>();
 
         return services;
     }

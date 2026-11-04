@@ -29,6 +29,19 @@ public class FakeTransferRepository : ITransferRepository
         return Task.FromResult(transfer);
     }
 
+    public Task<IReadOnlyList<Transfer>> ListRecentAsync(
+        int maxCount,
+        CancellationToken cancellationToken = default)
+    {
+        var transfers = Transfers
+            .OrderByDescending(transfer => transfer.CreatedUtc)
+            .ThenByDescending(transfer => transfer.Id)
+            .Take(maxCount)
+            .ToList();
+
+        return Task.FromResult<IReadOnlyList<Transfer>>(transfers);
+    }
+
     public Task AddAsync(
         Transfer transfer,
         CancellationToken cancellationToken = default)

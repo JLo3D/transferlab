@@ -154,6 +154,15 @@ public class TransferEndpointTests
         Assert.Equal(1, completedTransfer.AttemptCount);
         Assert.NotNull(completedTransfer.ProcessingStartedUtc);
 
+        var transfers = await client
+            .GetFromJsonAsync<List<TransferResponse>>("/api/transfers/");
+
+        Assert.NotNull(transfers);
+        var listedTransfer = Assert.Single(transfers);
+        Assert.Equal(createdTransfer.Id, listedTransfer.Id);
+        Assert.Equal("Completed", listedTransfer.Status);
+        Assert.Equal(125m, listedTransfer.Amount);
+
         var sourceAccount = await client
             .GetFromJsonAsync<AccountResponse>(
                 $"/api/accounts/{sourceAccountId}");

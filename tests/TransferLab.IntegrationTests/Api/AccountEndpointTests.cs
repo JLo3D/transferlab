@@ -83,6 +83,15 @@ public class AccountEndpointTests
         Assert.Equal(createdAccount.Id, account.Id);
         Assert.Equal("HTTP Integration Account", account.Name);
         Assert.Equal(750.00m, account.Balance);
+
+        var accounts = await client
+            .GetFromJsonAsync<List<AccountResponse>>("/api/accounts/");
+
+        Assert.NotNull(accounts);
+        var listedAccount = Assert.Single(accounts);
+        Assert.Equal(createdAccount.Id, listedAccount.Id);
+        Assert.Equal("HTTP Integration Account", listedAccount.Name);
+        Assert.Equal(750.00m, listedAccount.Balance);
     }
 
     private sealed record CreateAccountResponse(Guid Id);
